@@ -10,15 +10,17 @@ public class HealthResponse {
     private String version;
     private GitLabInfo gitlab;
     private boolean isHealthy;
-
+    private double pipelineSuccessRate;
     public HealthResponse(String status, Instant timestamp, String service,
-                          String version, GitLabInfo gitlab, boolean isHealthy) {
+                          String version, GitLabInfo gitlab,
+                          boolean isHealthy, double pipelineSuccessRate) {
         this.status = status;
         this.timestamp = timestamp;
         this.service = service;
         this.version = version;
         this.gitlab = gitlab;
         this.isHealthy = isHealthy;
+        this.pipelineSuccessRate = pipelineSuccessRate;
     }
 
     public String getStatus() { return status; }
@@ -33,6 +35,9 @@ public class HealthResponse {
 
     public boolean isHealthy() { return isHealthy; }
 
+    public double getPipelineSuccessRate() {
+        return pipelineSuccessRate;
+    }
     // nested DTO
     public static class GitLabInfo {
         private String status;
@@ -48,5 +53,6 @@ public class HealthResponse {
         public String getStatus() { return status; }
         public String getRef() { return ref; }
         public String getUrl() { return url; }
+
     }
 }
