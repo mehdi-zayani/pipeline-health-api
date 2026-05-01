@@ -52,4 +52,32 @@ public class GitLabService {
             throw new RuntimeException("Error while fetching GitLab pipeline", e);
         }
     }
+    public double getSuccessRate() {
+
+        try {
+            String response = client.getLatestPipeline(gitlabUrl, projectId);
+
+            JsonNode root = objectMapper.readTree(response);
+
+            if (root.isEmpty()) {
+                return 0.0;
+            }
+
+            int total = root.size();
+            int successCount = 0;
+
+            for (JsonNode pipeline : root) {
+                String status = pipeline.get("status").asText();
+
+                if ("success".equalsIgnoreCase(status)) {
+                    successCount++;
+                }
+            }
+
+            return (successCount * 100.0) / total;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error computing success rate", e);
+        }
+    }
 }
