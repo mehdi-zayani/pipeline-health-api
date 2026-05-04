@@ -18,10 +18,10 @@ public class HealthService {
         this.gitLabService = gitLabService;
     }
 
-    // API call → retourne le cache uniquement
+    // API call → return  cache only
     public HealthResponse getHealth() {
 
-        // init lazy si jamais scheduler pas encore passé
+        // init lazy if schedular did not pass
         if (cachedHealth == null) {
             refreshHealth();
         }
@@ -65,7 +65,11 @@ public class HealthService {
                     Instant.now(),
                     "pipeline-health-api",
                     "1.0.0",
-                    null,
+                    new HealthResponse.GitLabInfo(
+                            "UNKNOWN",
+                            "N/A",
+                            "N/A"
+                    ),
                     false,
                     0.0
             );

@@ -6,7 +6,7 @@ import com.msz.pipeline_health_api.gitlab.client.GitLabClient;
 import com.msz.pipeline_health_api.gitlab.dto.GitLabPipelineDTO;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
+import org.springframework.web.client.RestTemplate;
 import java.time.Instant;
 
 @Service
@@ -14,6 +14,7 @@ public class GitLabService {
 
     private final GitLabClient client;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final RestTemplate restTemplate;
 
     @Value("${gitlab.url}")
     private String gitlabUrl;
@@ -21,8 +22,9 @@ public class GitLabService {
     @Value("${gitlab.project-id}")
     private Long projectId;
 
-    public GitLabService(GitLabClient client) {
+    public GitLabService(GitLabClient client,RestTemplate restTemplate) {
         this.client = client;
+        this.restTemplate= restTemplate;
     }
 
     public GitLabPipelineDTO getLatestPipeline() {
@@ -79,5 +81,27 @@ public class GitLabService {
         } catch (Exception e) {
             throw new RuntimeException("Error computing success rate", e);
         }
+    }
+    private String callGitLabWithRetry(String url) {
+        int maxAttempts = 3;
+        int attempt = 0;
+
+        while (attempt < maxAttempts) {
+            try {
+                return restTemplate.getForObject(url, String.class);
+            } catch (Exception e) {
+                attempt++;
+
+                if (attempt >= maxAttempts) {
+                    throw new RuntimeException("GitLab API failed after retries", e);
+                }
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException ignored) {}
+            }
+        }
+
+        return null;
     }
 }
