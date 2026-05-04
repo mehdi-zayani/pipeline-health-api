@@ -52,4 +52,4 @@ http://localhost:8080/h2-console
 
 ## License
 
-This project is under MIT LICENSE
+This project is under MIT  LICENSE
