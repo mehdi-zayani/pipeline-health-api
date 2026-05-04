@@ -10,9 +10,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class GitLabService {
+
 
     private static final Logger log = LoggerFactory.getLogger(GitLabService.class);
 
@@ -24,6 +26,12 @@ public class GitLabService {
 
     @Value("${gitlab.project-id}")
     private Long projectId;
+
+    @Value("${gitlab.retry.max-attempts}")
+    private int maxAttempts;
+
+    @Value("${gitlab.retry.delay}")
+    private long retryDelay;
 
     public GitLabService(GitLabClient client) {
         this.client = client;
@@ -112,14 +120,12 @@ public class GitLabService {
     // =========================
     private String callGitLabWithRetry() {
 
-        int maxAttempts = 3;
         int attempt = 0;
 
         while (attempt < maxAttempts) {
             try {
-                log.debug("Calling GitLab API attempt {}/{}", attempt + 1, maxAttempts);
+                log.debug("GitLab API call attempt {}/{}", attempt + 1, maxAttempts);
 
-                String url = gitlabUrl + "/projects/" + projectId + "/pipelines";
                 return client.getLatestPipeline(gitlabUrl, projectId);
 
             } catch (Exception e) {
@@ -128,18 +134,18 @@ public class GitLabService {
                 log.warn("GitLab API failed attempt {}/{}", attempt, maxAttempts);
 
                 if (attempt >= maxAttempts) {
-                    log.error("GitLab API failed after {} attempts", maxAttempts);
+                    log.error("GitLab API failed after {} attempts", maxAttempts, e);
                     throw new RuntimeException("GitLab API failed after retries", e);
                 }
 
                 try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ignored) {
+                    Thread.sleep(retryDelay);
+                } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
                 }
             }
         }
 
-        throw new RuntimeException("Unexpected error in retry logic");
+        throw new RuntimeException("Unexpected retry failure");
     }
 }

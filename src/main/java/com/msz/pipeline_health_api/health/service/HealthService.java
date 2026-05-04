@@ -40,7 +40,7 @@ public class HealthService {
     // =========================
     // SCHEDULER
     // =========================
-    @Scheduled(fixedRate = 30000)
+    @Scheduled(fixedRateString = "${health.refresh.rate}")
     public void refreshHealth() {
 
         log.info("Refreshing health cache...");
