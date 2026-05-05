@@ -1,25 +1,29 @@
 package com.msz.pipeline_health_api.gitlab.dto;
 
 import java.time.Instant;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 
+/**
+ * Data Transfer Object representing a GitLab pipeline.
+ */
 @Schema(description = "GitLab pipeline details")
 public class GitLabPipelineDTO {
 
     @Schema(description = "Pipeline ID", example = "123456789")
-    private Long id;
+    private final Long id;
 
     @Schema(description = "Pipeline status", example = "success")
-    private String status;
+    private final String status;
 
     @Schema(description = "Git branch reference", example = "main")
-    private String ref;
+    private final String ref;
 
     @Schema(description = "Pipeline creation timestamp")
-    private Instant createdAt;
+    private final Instant createdAt;
 
     @Schema(description = "GitLab pipeline URL", example = "https://gitlab.com/.../pipelines/123")
-    private String webUrl;
+    private final String webUrl;
 
     public GitLabPipelineDTO(Long id, String status, String ref, Instant createdAt, String webUrl) {
         this.id = id;

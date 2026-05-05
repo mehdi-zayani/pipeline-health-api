@@ -1,33 +1,38 @@
 package com.msz.pipeline_health_api.health.dto;
 
 import java.time.Instant;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+/**
+ * Global health response returned by the API.
+ * Contains application status and GitLab pipeline information.
+ */
 @Schema(description = "Global health response")
 public class HealthResponse {
 
     @Schema(description = "Overall application status", example = "UP")
-    private String status;
+    private final String status;
 
     @Schema(description = "Timestamp of the health check")
-    private Instant timestamp;
+    private final Instant timestamp;
 
     @Schema(description = "Service name", example = "pipeline-health-api")
-    private String service;
+    private final String service;
 
     @Schema(description = "Application version", example = "1.0.0")
-    private String version;
+    private final String version;
 
     @Schema(description = "GitLab pipeline information")
-    private GitLabInfo gitlab;
+    private final GitLabInfo gitlab;
 
     @JsonProperty("healthy")
     @Schema(description = "Indicates if system is healthy", example = "true")
-    private boolean isHealthy;
+    private final boolean isHealthy;
 
     @Schema(description = "Pipeline success rate percentage", example = "100.0")
-    private double pipelineSuccessRate;
+    private final double pipelineSuccessRate;
 
     public HealthResponse(String status, Instant timestamp, String service,
                           String version, GitLabInfo gitlab,
@@ -73,17 +78,20 @@ public class HealthResponse {
     // NESTED DTO
     // ===============================
 
+    /**
+     * GitLab pipeline information embedded in health response.
+     */
     @Schema(description = "GitLab pipeline details")
     public static class GitLabInfo {
 
         @Schema(description = "Pipeline status", example = "success")
-        private String status;
+        private final String status;
 
         @Schema(description = "Git branch name", example = "main")
-        private String ref;
+        private final String ref;
 
         @Schema(description = "Pipeline URL", example = "https://gitlab.com/...")
-        private String url;
+        private final String url;
 
         public GitLabInfo(String status, String ref, String url) {
             this.status = status;
