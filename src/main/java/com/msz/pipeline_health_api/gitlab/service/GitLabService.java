@@ -10,11 +10,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import org.springframework.beans.factory.annotation.Value;
 
+/**
+ * Service responsible for interacting with GitLab API.
+ * Provides pipeline information and computes success rate.
+ */
 @Service
 public class GitLabService {
-
 
     private static final Logger log = LoggerFactory.getLogger(GitLabService.class);
 
@@ -37,9 +39,11 @@ public class GitLabService {
         this.client = client;
     }
 
-    // =========================
-    // GET LATEST PIPELINE
-    // =========================
+    /**
+     * Fetches the latest pipeline from GitLab.
+     *
+     * @return latest GitLabPipelineDTO
+     */
     public GitLabPipelineDTO getLatestPipeline() {
 
         log.info("Fetching latest GitLab pipeline (projectId={})", projectId);
@@ -75,9 +79,11 @@ public class GitLabService {
         }
     }
 
-    // =========================
-    // SUCCESS RATE
-    // =========================
+    /**
+     * Computes success rate of recent pipelines.
+     *
+     * @return success rate percentage
+     */
     public double getSuccessRate() {
 
         log.info("Computing pipeline success rate (projectId={})", projectId);
@@ -115,9 +121,11 @@ public class GitLabService {
         }
     }
 
-    // =========================
-    // RETRY LOGIC (clean)
-    // =========================
+    /**
+     * Calls GitLab API with retry mechanism.
+     *
+     * @return raw JSON response
+     */
     private String callGitLabWithRetry() {
 
         int attempt = 0;
@@ -142,6 +150,7 @@ public class GitLabService {
                     Thread.sleep(retryDelay);
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
+                    log.warn("Retry interrupted");
                 }
             }
         }

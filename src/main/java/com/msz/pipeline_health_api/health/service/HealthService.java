@@ -10,6 +10,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
+/**
+ * Service responsible for computing and caching application health status.
+ * Health data is periodically refreshed using a scheduler.
+ */
 @Service
 public class HealthService {
 
@@ -23,8 +27,15 @@ public class HealthService {
     }
 
     // =========================
-    // PUBLIC API (cache only)
+    // PUBLIC API (cache access)
     // =========================
+
+    /**
+     * Returns the current health status from cache.
+     * Triggers a refresh if cache is not yet initialized.
+     *
+     * @return current HealthResponse
+     */
     public HealthResponse getHealth() {
 
         log.info("Health endpoint called");
@@ -40,6 +51,11 @@ public class HealthService {
     // =========================
     // SCHEDULER
     // =========================
+
+    /**
+     * Periodically refreshes health data by calling GitLab API.
+     * Updates cached health response.
+     */
     @Scheduled(fixedRateString = "${health.refresh.rate}")
     public void refreshHealth() {
 
