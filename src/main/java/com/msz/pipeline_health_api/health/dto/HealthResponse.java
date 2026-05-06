@@ -2,15 +2,38 @@ package com.msz.pipeline_health_api.health.dto;
 
 import java.time.Instant;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+/**
+ * Global health response returned by the API.
+ * Contains application status and GitLab pipeline information.
+ */
+@Schema(description = "Global health response")
 public class HealthResponse {
 
-    private String status;
-    private Instant timestamp;
-    private String service;
-    private String version;
-    private GitLabInfo gitlab;
-    private boolean isHealthy;
-    private double pipelineSuccessRate;
+    @Schema(description = "Overall application status", example = "UP")
+    private final String status;
+
+    @Schema(description = "Timestamp of the health check")
+    private final Instant timestamp;
+
+    @Schema(description = "Service name", example = "pipeline-health-api")
+    private final String service;
+
+    @Schema(description = "Application version", example = "1.0.0")
+    private final String version;
+
+    @Schema(description = "GitLab pipeline information")
+    private final GitLabInfo gitlab;
+
+    @JsonProperty("healthy")
+    @Schema(description = "Indicates if system is healthy", example = "true")
+    private final boolean isHealthy;
+
+    @Schema(description = "Pipeline success rate percentage", example = "100.0")
+    private final double pipelineSuccessRate;
+
     public HealthResponse(String status, Instant timestamp, String service,
                           String version, GitLabInfo gitlab,
                           boolean isHealthy, double pipelineSuccessRate) {
@@ -23,26 +46,52 @@ public class HealthResponse {
         this.pipelineSuccessRate = pipelineSuccessRate;
     }
 
-    public String getStatus() { return status; }
+    public String getStatus() {
+        return status;
+    }
 
-    public Instant getTimestamp() { return timestamp; }
+    public Instant getTimestamp() {
+        return timestamp;
+    }
 
-    public String getService() { return service; }
+    public String getService() {
+        return service;
+    }
 
-    public String getVersion() { return version; }
+    public String getVersion() {
+        return version;
+    }
 
-    public GitLabInfo getGitlab() { return gitlab; }
+    public GitLabInfo getGitlab() {
+        return gitlab;
+    }
 
-    public boolean isHealthy() { return isHealthy; }
+    public boolean isHealthy() {
+        return isHealthy;
+    }
 
     public double getPipelineSuccessRate() {
         return pipelineSuccessRate;
     }
-    // nested DTO
+
+    // ===============================
+    // NESTED DTO
+    // ===============================
+
+    /**
+     * GitLab pipeline information embedded in health response.
+     */
+    @Schema(description = "GitLab pipeline details")
     public static class GitLabInfo {
-        private String status;
-        private String ref;
-        private String url;
+
+        @Schema(description = "Pipeline status", example = "success")
+        private final String status;
+
+        @Schema(description = "Git branch name", example = "main")
+        private final String ref;
+
+        @Schema(description = "Pipeline URL", example = "https://gitlab.com/...")
+        private final String url;
 
         public GitLabInfo(String status, String ref, String url) {
             this.status = status;
@@ -50,9 +99,16 @@ public class HealthResponse {
             this.url = url;
         }
 
-        public String getStatus() { return status; }
-        public String getRef() { return ref; }
-        public String getUrl() { return url; }
+        public String getStatus() {
+            return status;
+        }
 
+        public String getRef() {
+            return ref;
+        }
+
+        public String getUrl() {
+            return url;
+        }
     }
 }

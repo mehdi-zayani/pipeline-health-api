@@ -1,0 +1,38 @@
+name: Pipeline Health API CI
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "develop" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Setup Java runtime for Spring Boot 3 (Java 17 required)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Debug step: ensure correct Java version is used
+      - name: Show Java version
+        run: java -version
+
+      # Cache Maven dependencies to speed up builds
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+
+      # Build + test application (standard Maven verify lifecycle)
+      - name: Build and test with Maven
+        run: mvn clean verify

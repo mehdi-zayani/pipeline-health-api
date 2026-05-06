@@ -4,17 +4,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.msz.pipeline_health_api.gitlab.client.GitLabClient;
 import com.msz.pipeline_health_api.gitlab.dto.GitLabPipelineDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+
 import java.time.Instant;
 
+/**
+ * Service responsible for interacting with GitLab API.
+ * Provides pipeline information and computes success rate.
+ */
 @Service
 public class GitLabService {
 
+    private static final Logger log = LoggerFactory.getLogger(GitLabService.class);
+
     private final GitLabClient client;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RestTemplate restTemplate;
 
     @Value("${gitlab.url}")
     private String gitlabUrl;
@@ -22,27 +29,38 @@ public class GitLabService {
     @Value("${gitlab.project-id}")
     private Long projectId;
 
-    public GitLabService(GitLabClient client,RestTemplate restTemplate) {
+    @Value("${gitlab.retry.max-attempts}")
+    private int maxAttempts;
+
+    @Value("${gitlab.retry.delay}")
+    private long retryDelay;
+
+    public GitLabService(GitLabClient client) {
         this.client = client;
-        this.restTemplate= restTemplate;
     }
 
+    /**
+     * Fetches the latest pipeline from GitLab.
+     *
+     * @return latest GitLabPipelineDTO
+     */
     public GitLabPipelineDTO getLatestPipeline() {
 
+        log.info("Fetching latest GitLab pipeline (projectId={})", projectId);
+
         try {
+            String response = callGitLabWithRetry();
 
-            String response = client.getLatestPipeline(gitlabUrl, projectId);
-
-            // parse JSON array
             JsonNode root = objectMapper.readTree(response);
 
             if (root.isEmpty()) {
+                log.warn("No pipeline found for projectId={}", projectId);
                 throw new RuntimeException("No pipeline found");
             }
 
             JsonNode pipeline = root.get(0);
 
-            return new GitLabPipelineDTO(
+            GitLabPipelineDTO dto = new GitLabPipelineDTO(
                     pipeline.get("id").asLong(),
                     pipeline.get("status").asText(),
                     pipeline.get("ref").asText(),
@@ -50,18 +68,33 @@ public class GitLabService {
                     pipeline.get("web_url").asText()
             );
 
+            log.info("Pipeline fetched successfully: status={}, ref={}",
+                    dto.getStatus(), dto.getRef());
+
+            return dto;
+
         } catch (Exception e) {
+            log.error("Error while fetching GitLab pipeline", e);
             throw new RuntimeException("Error while fetching GitLab pipeline", e);
         }
     }
+
+    /**
+     * Computes success rate of recent pipelines.
+     *
+     * @return success rate percentage
+     */
     public double getSuccessRate() {
 
+        log.info("Computing pipeline success rate (projectId={})", projectId);
+
         try {
-            String response = client.getLatestPipeline(gitlabUrl, projectId);
+            String response = callGitLabWithRetry();
 
             JsonNode root = objectMapper.readTree(response);
 
             if (root.isEmpty()) {
+                log.warn("No pipelines found for success rate calculation");
                 return 0.0;
             }
 
@@ -76,32 +109,52 @@ public class GitLabService {
                 }
             }
 
-            return (successCount * 100.0) / total;
+            double rate = (successCount * 100.0) / total;
+
+            log.info("Success rate calculated: {}%", rate);
+
+            return rate;
 
         } catch (Exception e) {
+            log.error("Error computing success rate", e);
             throw new RuntimeException("Error computing success rate", e);
         }
     }
-    private String callGitLabWithRetry(String url) {
-        int maxAttempts = 3;
+
+    /**
+     * Calls GitLab API with retry mechanism.
+     *
+     * @return raw JSON response
+     */
+    private String callGitLabWithRetry() {
+
         int attempt = 0;
 
         while (attempt < maxAttempts) {
             try {
-                return restTemplate.getForObject(url, String.class);
+                log.debug("GitLab API call attempt {}/{}", attempt + 1, maxAttempts);
+
+                return client.getLatestPipeline(gitlabUrl, projectId);
+
             } catch (Exception e) {
+
                 attempt++;
+                log.warn("GitLab API failed attempt {}/{}", attempt, maxAttempts);
 
                 if (attempt >= maxAttempts) {
+                    log.error("GitLab API failed after {} attempts", maxAttempts, e);
                     throw new RuntimeException("GitLab API failed after retries", e);
                 }
 
                 try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException ignored) {}
+                    Thread.sleep(retryDelay);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    log.warn("Retry interrupted");
+                }
             }
         }
 
-        return null;
+        throw new RuntimeException("Unexpected retry failure");
     }
 }

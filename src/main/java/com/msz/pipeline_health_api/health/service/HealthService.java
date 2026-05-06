@@ -3,13 +3,21 @@ package com.msz.pipeline_health_api.health.service;
 import com.msz.pipeline_health_api.gitlab.dto.GitLabPipelineDTO;
 import com.msz.pipeline_health_api.gitlab.service.GitLabService;
 import com.msz.pipeline_health_api.health.dto.HealthResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
+/**
+ * Service responsible for computing and caching application health status.
+ * Health data is periodically refreshed using a scheduler.
+ */
 @Service
 public class HealthService {
+
+    private static final Logger log = LoggerFactory.getLogger(HealthService.class);
 
     private final GitLabService gitLabService;
     private volatile HealthResponse cachedHealth;
@@ -18,20 +26,40 @@ public class HealthService {
         this.gitLabService = gitLabService;
     }
 
-    // API call → return  cache only
+    // =========================
+    // PUBLIC API (cache access)
+    // =========================
+
+    /**
+     * Returns the current health status from cache.
+     * Triggers a refresh if cache is not yet initialized.
+     *
+     * @return current HealthResponse
+     */
     public HealthResponse getHealth() {
 
-        // init lazy if schedular did not pass
+        log.info("Health endpoint called");
+
         if (cachedHealth == null) {
+            log.warn("Cache empty, triggering manual refresh");
             refreshHealth();
         }
 
         return cachedHealth;
     }
 
-    // Scheduler → seul endroit où on appelle GitLab
-    @Scheduled(fixedRate = 30000) // 30 secondes
+    // =========================
+    // SCHEDULER
+    // =========================
+
+    /**
+     * Periodically refreshes health data by calling GitLab API.
+     * Updates cached health response.
+     */
+    @Scheduled(fixedRateString = "${health.refresh.rate}")
     public void refreshHealth() {
+
+        log.info("Refreshing health cache...");
 
         try {
             GitLabPipelineDTO pipeline = gitLabService.getLatestPipeline();
@@ -58,8 +86,12 @@ public class HealthService {
                     successRate
             );
 
+            log.info("Health cache updated: status={}, successRate={}", status, successRate);
+
         } catch (Exception e) {
-            // fallback si GitLab down
+
+            log.error("Error while refreshing health cache, using fallback", e);
+
             cachedHealth = new HealthResponse(
                     "DOWN",
                     Instant.now(),
